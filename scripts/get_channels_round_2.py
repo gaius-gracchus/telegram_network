@@ -21,7 +21,7 @@ PHONE = os.getenv( 'TELEGRAM_PHONE' )
 
 MSG_INPUT_DIR = '../data/round_1/messages'
 
-OUTPUT_CONNECTION_DICT = '../data/round_1/connections.pkl'
+OUTPUT_CONNECTION_DIR = '../data/round_1/connections'
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
@@ -43,6 +43,8 @@ async def main( ):
   #---------------------------------------------------------------------------#
 
   username_list = sorted( os.listdir( MSG_INPUT_DIR ) )
+
+  os.makedirs( OUTPUT_CONNECTION_DIR, exist_ok = True )
 
   connection_dict = dict( )
 
@@ -75,10 +77,14 @@ async def main( ):
 
     print( f'forwards from {username}: {dict( Counter( forward_list ))}' )
 
-    connection_dict[ username ] = dict( Counter( forward_list ) )
+    user_connection_dict = dict( Counter( forward_list ) )
 
-  with open( OUTPUT_CONNECTION_DICT, 'wb' ) as f:
-    f.write( connection_dict )
+    with open( os.path.join( OUTPUT_CONNECTION_DIR, f'{username}.pkl' ), 'wb' ) as f:
+      pickle.dump( user_connection_dict, f )
+
+    connection_dict[ username ] = user_connection_dict
+
+
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
