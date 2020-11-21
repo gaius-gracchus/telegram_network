@@ -1,0 +1,7 @@
+# ignore everything
+data
+jupyter
+
+# don't ignore Python scripts in the "scripts/" directory
+scripts/*
+!scripts/*.py
