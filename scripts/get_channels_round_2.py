@@ -2,92 +2,59 @@
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-import pickle
-import os
-import asyncio
 from collections import Counter
+import os
+import pickle
 
-from telethon import TelegramClient, errors
-from telethon.tl.types import PeerChannel
-from telethon.tl.functions.channels import GetParticipantsRequest, GetFullChannelRequest
-from telethon.tl.functions.messages import GetHistoryRequest
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
-
-API_ID = int( os.getenv( 'TELEGRAM_API_ID' ) )
-API_HASH = os.getenv( 'TELEGRAM_API_HASH' )
-USERNAME = os.getenv( 'TELEGRAM_USERNAME' )
-PHONE = os.getenv( 'TELEGRAM_PHONE' )
-
-MSG_INPUT_DIR = '../data/round_1/messages'
-
-OUTPUT_CONNECTION_DIR = '../data/round_1/connections'
+from bs4 import BeautifulSoup
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-async def main( ):
+INPUT_CONNECTION_DIR = '../data/round_1/connections'
 
-  # Create the client and connect
-  client = TelegramClient( USERNAME, API_ID, API_HASH )
-  await client.start( )
-  print("Client Created")
+ROUND_1_LIST = '../data/round_1/round_1_seed.txt'
+BLACKLIST = '../data/blacklist.txt'
 
-  # Ensure you're authorized
-  if not await client.is_user_authorized( ):
-    await client.send_code_request( PHONE )
-    try:
-      await client.sign_in( PHONE, input( 'Enter the code: ' ) )
-    except errors.SessionPasswordNeededError:
-      await client.sign_in( password = input( 'Password: ' ) )
-
-  #---------------------------------------------------------------------------#
-
-  username_list = sorted( os.listdir( MSG_INPUT_DIR ) )
-
-  os.makedirs( OUTPUT_CONNECTION_DIR, exist_ok = True )
-
-  connection_dict = dict( )
-
-  for username in username_list:
-
-    print( f'getting forwards for channel {username}\n' )
-
-    with open( os.path.join( MSG_INPUT_DIR, username), 'rb' ) as f:
-      messages = pickle.load( f )
-
-    forward_list = list( )
-
-    for message in messages:
-
-      try:
-
-        channel_id = message[ 'fwd_from' ][ 'from_id' ][ 'channel_id' ]
-        forward_channel = await client.get_entity( PeerChannel( channel_id ) )
-        forward_username = forward_channel.username
-
-        print( username, forward_username )
-
-        if forward_channel is not None:
-
-          forward_list.append( forward_username )
-
-      except:
-
-        pass
-
-    print( f'forwards from {username}: {dict( Counter( forward_list ))}' )
-
-    user_connection_dict = dict( Counter( forward_list ) )
-
-    with open( os.path.join( OUTPUT_CONNECTION_DIR, f'{username}.pkl' ), 'wb' ) as f:
-      pickle.dump( user_connection_dict, f )
-
-    connection_dict[ username ] = user_connection_dict
-
-
+ROUND_2_LIST = '../data/round_2/round_2_channels_list.txt'
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-asyncio.run( main( ) )
+c = Counter( )
+
+files = sorted( os.listdir( INPUT_CONNECTION_DIR ) )
+
+for file in files:
+
+  with open( os.path.join( INPUT_CONNECTION_DIR, file ), 'rb' ) as f:
+    _c = pickle.load( f )
+
+  # print( c )
+  c += _c
+
+channel_list = list( c.keys( ) )
+
+channel_set = set( channel_list )
+
+with open( BLACKLIST, 'r' ) as f:
+  blacklist = set( f.read( ).splitlines( ) )
+
+with open( ROUND_1_LIST, 'r' ) as f:
+  round_1_set = set( f.read( ).splitlines( ) )
+
+print( len( channel_list ) )
+
+channel_set = channel_set - blacklist
+channel_set = channel_set - round_1_set
+
+channel_list = list( channel_set )
+channel_list = sorted( list( filter( None, channel_list ) ) )
+
+# #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
+
+os.makedirs( os.path.dirname( ROUND_2_LIST ), exist_ok = True )
+
+with open( ROUND_2_LIST, 'w' ) as f:
+  for channel in channel_list:
+    f.write( channel + '\n' )
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#

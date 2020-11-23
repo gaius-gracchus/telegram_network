@@ -20,6 +20,8 @@ from telethon.tl.functions.messages import GetHistoryRequest
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
+print( 'parsing args' )
+
 parser = argparse.ArgumentParser(
   description = 'Download Telegram messages for a specified channel' )
 
@@ -28,20 +30,31 @@ parser.add_argument(
   type = str,
   help = 'Channel username to download messages of' )
 
+parser.add_argument(
+  '--output_dir',
+  type = str,
+  help = 'Directory to write message files to' )
+
+parser.add_argument(
+  '--credentials',
+  type = int,
+  default = 1,
+  help = 'Set of API credentials to use' )
+
 args = parser.parse_args( )
 
 username = args.username
+output_dir = args.output_dir
+credentials = args.credentials
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-API_ID = int( os.getenv('TELEGRAM_API_ID') )
-API_HASH = os.getenv('TELEGRAM_API_HASH')
-USERNAME = os.getenv('TELEGRAM_USERNAME')
-PHONE = os.getenv('TELEGRAM_PHONE')
+API_ID = int( os.getenv(f'TELEGRAM_API_ID_{credentials}') )
+API_HASH = os.getenv(f'TELEGRAM_API_HASH_{credentials}')
+USERNAME = os.getenv(f'TELEGRAM_USERNAME_{credentials}')
+PHONE = os.getenv(f'TELEGRAM_PHONE_{credentials}')
 
 SQLITE_DB = f'../data/{USERNAME}.session'
-
-MSG_OUTPUT_DIR = '../data/round_1/messages'
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
@@ -63,14 +76,31 @@ async def main( username ):
 
   df = pd.DataFrame( columns = [ 'id', 'username', 'name' ] )
 
-  cnx = sqlite3.connect( SQLITE_DB )
+  sqlite_db_list = [
+    f'{os.getenv("TELEGRAM_USERNAME_1")}.session',
+    f'{os.getenv("TELEGRAM_USERNAME_2")}.session',
+    f'{os.getenv("TELEGRAM_USERNAME_3")}.session',
+    f'../data/{os.getenv("TELEGRAM_USERNAME_1")}.session' ]
 
-  df = pd.read_sql_query( "SELECT * FROM entities", cnx )
-  df = df[ [ 'id', 'username', 'name' ] ]
-  df = df.dropna( )
+  dfl = list( )
 
-  cnx.close( )
+  for sqlite_db in sqlite_db_list:
 
+    try:
+
+      cnx = sqlite3.connect( sqlite_db )
+
+      _df = pd.read_sql_query( "SELECT * FROM entities", cnx )
+      _df = _df[ [ 'id', 'username', 'name' ] ]
+
+      cnx.close( )
+
+      dfl.append( _df )
+
+    except:
+      pass
+
+  df = pd.concat( dfl )
   df = df.dropna( )
   df = df.drop_duplicates( )
 
@@ -134,7 +164,7 @@ async def main( username ):
 
       messages = [ message.to_dict( ) for message in messages ]
 
-      with open( os.path.join( MSG_OUTPUT_DIR, username), 'wb' ) as f:
+      with open( os.path.join( output_dir, username), 'wb' ) as f:
         pickle.dump( messages, f )
 
       channel_id = None

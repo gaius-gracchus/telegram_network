@@ -10,13 +10,13 @@ import subprocess
 
 SCRIPT = 'get_messages_single.py'
 
-INPUT_FILE = '../data/round_1/round_1_seed.txt'
+INPUT_FILE = '../data/round_2/round_2_channels_list.txt'
 
-MSG_OUTPUT_DIR = '../data/round_1/messages'
-
-ERROR = 'telethon.errors.rpcerrorlist.UsernameNotOccupiedError:'
+MSG_OUTPUT_DIR = '../data/round_2/messages'
 
 BLACKLIST_FILE = '../data/blacklist.txt'
+
+CREDENTIALS = 3
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
@@ -34,10 +34,14 @@ already_extracted = { username.lower( ) for username in already_extracted }
 
 username_list = [ username for username in username_list if username.lower( ) not in already_extracted ]
 
+# username_list.remove( 'Daily_Caller' )
+
 for username in username_list:
 
+  print( username )
+
   process = subprocess.run(
-    args = [ 'python', SCRIPT, '--username', username , '--output_dir', MSG_OUTPUT_DIR ],
+    args = [ 'python', SCRIPT, '--username', username , '--output_dir', MSG_OUTPUT_DIR, '--credentials', str( CREDENTIALS ) ],
     stdout = subprocess.PIPE,
     stderr = subprocess.PIPE )
 
